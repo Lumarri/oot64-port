@@ -1,4 +1,20 @@
-# ROMs de Nintendo 64 y paquetes de recursos (cualquier combinación de mayúsculas)
+# Juegos de Nintendo 3DS y resultados de extracción
+*.3[dD][sS]
+*.[cC][cC][iI]
+*.[cC][iI][aA]
+*.[cC][xX][iI]
+*.[cC][fF][aA]
+*.[nN][cC][cC][hH]
+code.bin
+exheader.bin
+exefs.bin
+romfs.bin
+aes_keys.txt
+seeddb.bin
+/romfs/
+/exefs/
+
+# ROMs de Nintendo 64 y paquetes de recursos
 *.[zZ]64
 *.[nN]64
 *.[vV]64
@@ -10,6 +26,8 @@
 /local/
 /roms/
 /extracted/
+/private/
+/generated/
 
 # Android / Gradle
 .gradle/

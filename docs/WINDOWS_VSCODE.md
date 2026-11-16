@@ -1,6 +1,6 @@
 # Desarrollo local en Windows con VS Code
 
-Esta guía prepara el editor y la conexión con un teléfono Android por USB. El proyecto todavía no contiene una aplicación compilable ni un APK.
+Esta guía prepara el editor y la conexión con un teléfono Android por USB para el port de **Majora's Mask 3D**. El proyecto todavía no contiene una aplicación compilable ni un APK.
 
 ## 1. Instalar las herramientas iniciales
 
@@ -44,7 +44,7 @@ Trabaja en una sesión local sobre esta carpeta. La sesión anterior en la nube 
 
 Puedes iniciar la conversación local con este contexto:
 
-> Continuamos el proyecto oot64-port para Android desde Windows. Revisa README.md y docs/ROADMAP.md. Comprueba la conexión del teléfono por ADB y obtén modelo, versión de Android y arquitecturas compatibles. El repositorio contiene documentación y tareas de VS Code; todavía no tiene motor integrado ni APK. Estamos evaluando Shipwright-Android como base y la compatibilidad de la ROM sigue pendiente de resolver. Mantén ROMs y recursos extraídos en las carpetas locales excluidas de Git.
+> Continuamos el port nativo de Majora's Mask 3D de Nintendo 3DS a Android ARM64 desde Windows. El repositorio aún se llama oot64-port. Revisa README.md, docs/ROADMAP.md y docs/TECHNICAL_BASE.md. Comprueba la conexión del teléfono por ADB y obtén modelo, versión de Android y arquitecturas compatibles. Hay documentación y tareas de VS Code, pero todavía no hay runtime integrado ni APK propio. La candidata es MM3D-PC/TriAevum, con base Android experimental pendiente de adaptar y validar para MM3D. Mantén ROMs, recursos y código generado del juego en carpetas locales excluidas de Git.
 
 La [guía oficial de la extensión](https://developers.openai.com/codex/ide/) describe su instalación y el trabajo local.
 
@@ -82,10 +82,10 @@ También puedes abrir **Terminal → Ejecutar tarea** en VS Code y elegir cualqu
 
 ## 5. Preparar la compilación del port
 
-El SDK, NDK y el sistema de compilación se fijarán al integrar la base elegida. La [documentación de Shipwright-Android](https://github.com/Waterdish/Shipwright-Android#build) describe un entorno de compilación Linux y propone WSL o una máquina virtual para usuarios de Windows. Si adoptamos esa base, prepararemos WSL2 para compilar y podremos seguir usando ADB desde Windows para instalar y probar el APK.
+El SDK, NDK y el sistema de compilación se fijarán al integrar la base elegida. La base experimental Android de MM3D-PC/TriAevum describe compilación nativa desde Linux con el NDK. Consulta [TECHNICAL_BASE.md](TECHNICAL_BASE.md) para las versiones observadas y lo que falta validar. Si adoptamos esa base, prepararemos WSL2 para compilar y podremos seguir usando ADB desde Windows para instalar y probar el APK.
 
-Una terminal WSL no recibe automáticamente el teléfono conectado a Windows. Las comprobaciones USB de esta guía se ejecutan en PowerShell local. Todavía no hay una tarea de compilación o instalación porque el motor no se ha integrado.
+Una terminal WSL no recibe automáticamente el teléfono conectado a Windows. Las comprobaciones USB de esta guía se ejecutan en PowerShell local. Todavía no hay una tarea de compilación o instalación porque el runtime no se ha integrado.
 
 ## ROM y archivos locales
 
-Mantén tu copia de la ROM en `roms/` o `local/` y los recursos extraídos en `extracted/`. Estas carpetas están excluidas de Git. La validación de la ROM se debe resolver antes de extraer recursos con la base seleccionada; un nombre de archivo o una cabecera reconocible no garantizan compatibilidad.
+Mantén tu copia local de Majora's Mask 3D en `roms/` o `local/`, los recursos extraídos en `extracted/` y el código traducido del juego en `private/` o `generated/`. Estas carpetas están excluidas de Git. MM3D-PC documenta como entrada una copia descifrada USA v1.1 en `.3ds` o `.cci`; la base que adoptemos deberá verificar la región y revisión por contenido antes de extraer o recompilar.
