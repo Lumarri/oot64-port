@@ -82,10 +82,27 @@ También puedes abrir **Terminal → Ejecutar tarea** en VS Code y elegir cualqu
 
 ## 5. Preparar la compilación del port
 
-El SDK, NDK y el sistema de compilación se fijarán al integrar la base elegida. La base experimental Android de MM3D-PC/TriAevum describe compilación nativa desde Linux con el NDK. Consulta [TECHNICAL_BASE.md](TECHNICAL_BASE.md) para las versiones observadas y lo que falta validar. Si adoptamos esa base, prepararemos WSL2 para compilar y podremos seguir usando ADB desde Windows para instalar y probar el APK.
+La base fijada es TriAevum/Moonfall Curse `672d13f`. Se instalaron NDK r29, CMake 4.2.3 y Ninja 1.13.2 en WSL2 Ubuntu; ADB permanece en Windows. La [guía Android](ANDROID_NATIVE.md) explica la compilación, las pruebas y la adaptación GLES 3.2 necesaria para el moto g24 power.
 
-Una terminal WSL no recibe automáticamente el teléfono conectado a Windows. Las comprobaciones USB de esta guía se ejecutan en PowerShell local. Todavía no hay una tarea de compilación o instalación porque el runtime no se ha integrado.
+Desde la raíz, en PowerShell:
+
+```powershell
+wsl -d Ubuntu -- bash tools/android/build_native.sh
+python -B tools/android/test_device.py
+```
+
+También están las tareas **MM3D: compilar base Android ARM64** y **MM3D: probar base ARM64 en teléfono USB**. Las sondas de servicios y GLES funcionan; la sonda Vulkan/NRI falla por los requisitos gráficos upstream. Este resultado queda registrado y produce salida global 1.
+
+Para extraer de nuevo la ROM verificada:
+
+```powershell
+python tools/extract_mm3d_rom.py
+```
+
+O la tarea **MM3D: verificar y extraer ROM local**. La salida va a `extracted/mm3d-eur-rev1/` y no se versiona.
+
+Una terminal WSL no recibe automáticamente el teléfono conectado a Windows. Las comprobaciones USB se ejecutan en PowerShell local. La compilación prepara los binarios en `local/android-native-stage/` para que ADB de Windows pueda copiarlos. Todavía no hay una tarea de instalación de APK porque el juego no está integrado.
 
 ## ROM y archivos locales
 
-Mantén tu copia local de Majora's Mask 3D en `roms/` o `local/`, los recursos extraídos en `extracted/` y el código traducido del juego en `private/` o `generated/`. Estas carpetas están excluidas de Git. MM3D-PC documenta como entrada una copia descifrada USA v1.1 en `.3ds` o `.cci`; la base que adoptemos deberá verificar la región y revisión por contenido antes de extraer o recompilar.
+Mantén tu copia local de Majora's Mask 3D en `roms/` o `local/`, los recursos extraídos en `extracted/` y el código traducido del juego en `private/` o `generated/`. Estas carpetas están excluidas de Git y no deben subirse a GitHub. La copia verificada es Europa Rev 1 (CTR-P-AJRP, descifrada); es la entrada que documenta Moonfall Curse. MM3D-PC pide USA v1.1 (CTR-P-AJRE). Comprueba región, cifrado y hashes por contenido, no por el nombre del archivo. Ver [TECHNICAL_BASE.md](TECHNICAL_BASE.md).

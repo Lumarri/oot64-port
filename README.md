@@ -6,7 +6,9 @@ El repositorio se aloja actualmente en [`Lumarri/oot64-port`](https://github.com
 
 ## Estado
 
-Evaluación técnica y preparación del entorno. Hay una guía para Windows/VS Code y tareas de ADB. Todavía no hay runtime integrado, compilación Android propia ni APK jugable.
+La copia europea Rev 1 está verificada y extraída en local. La base nativa seleccionada es **TriAevum/Moonfall Curse `672d13f`**, fijada en [config/android-base.json](config/android-base.json). El objetivo obligatorio es **moto g24 power** (Android 14, ARM64, Mali-G52). Hay herramientas de compilación WSL, sondas ARM64 y una prueba GLES 3.2; todavía no hay APK jugable.
+
+Primer hito ejecutado en el teléfono: **7 pruebas de servicios/cargador y la prueba gráfica GLES 3.2 pasaron**. Vulkan/NRI falló por requerir Vulkan 1.2. Los resultados y límites están en [ANDROID_NATIVE.md](docs/ANDROID_NATIVE.md#resultado-del-16-de-noviembre-de-2026).
 
 ## Objetivo
 
@@ -16,17 +18,25 @@ La ruta de trabajo es la recompilación nativa: traducir localmente el código d
 
 ## Siguiente paso
 
-Evaluar [MM3D-PC](https://github.com/Volpe34/MM3D-PC), basado en [TriAevum](https://github.com/coccofresco/TriAevum), como punto de partida. Su versión de escritorio documenta recompilación de Majora's Mask 3D y su árbol incluye una base Android experimental que requiere adaptación y pruebas específicas para este juego.
+Validar la base ARM64 y desarrollar una ruta gráfica compatible con el teléfono. Su Vulkan 1.1.177 no cumple los requisitos del renderizador actual de TriAevum; la adaptación propuesta usa OpenGL ES 3.2. No basta con cambiar una opción: la ruta PICA existente necesita adaptación.
 
-La revisión de fuentes, los requisitos observados y las comprobaciones pendientes están en [docs/TECHNICAL_BASE.md](docs/TECHNICAL_BASE.md).
+El dump europeo CTR-P-AJRP coincide con la receta de Moonfall Curse. La [guía de compilación y pruebas Android](docs/ANDROID_NATIVE.md) documenta la base, comandos, resultados y límites del primer hito.
 
-Todavía no se han incorporado dependencias de esos proyectos. Antes de integrar una base, fijaremos su revisión y conservaremos sus licencias y atribuciones.
+Las copias de upstream se mantienen fuera de GitHub. Al integrar código, se conservarán GPL-3.0-or-later y las atribuciones de cada componente; iMMERSE/MXAO se excluirá por el alcance de su permiso upstream.
 
 ## ROM y recursos
 
-La base MM3D-PC revisada requiere una copia local de **Majora's Mask 3D USA v1.1**, descifrada, en formato `.3ds` o `.cci`. Otros proyectos pueden exigir otra región: la versión admitida se fijará junto con la base adoptada y se verificará por contenido.
+La copia local verificada es **Majora's Mask 3D Europa Rev 1** (CTR-P-AJRP, programa `0004000000125600`, build 1.1.0), descifrada, en `.3ds`. Coincide con los identificadores y el SHA-256 de `code.bin` que documenta [Moonfall Curse / TriAevum](https://github.com/coccofresco/TriAevum). MM3D-PC documenta en cambio **USA v1.1** (CTR-P-AJRE): no mezclar esos requisitos.
 
-La ROM, los recursos extraídos y el código generado a partir del juego se mantienen localmente, fuera del control de versiones. `.gitignore` excluye las carpetas `local/`, `roms/`, `extracted/`, `private/` y `generated/`, los formatos de juego de 3DS y los archivos de extracción habituales. Guarda estos archivos en tu PC; no hace falta subirlos para preparar el entorno.
+La [auditoría de la ROM y evaluación Android](docs/ROM_VERIFICATION.md) confirma también los hashes completos de ExHeader y RomFS contra la receta oficial de TriAevum `672d13f`. Esa base ya incluye una ruta Android específica para Moonfall Curse, todavía pendiente de validación en dispositivo.
+
+Para volver a extraer ExHeader, `code.bin` y RomFS (fuera de Git):
+
+```powershell
+python tools/extract_mm3d_rom.py
+```
+
+La ROM, los recursos extraídos, el clon de MM3D-PC y el código generado a partir del juego se mantienen localmente, fuera de GitHub. `.gitignore` excluye `local/`, `roms/`, `extracted/`, `private/` y `generated/`, los formatos de 3DS y los archivos de extracción habituales.
 
 ## Plan de trabajo
 
@@ -36,4 +46,11 @@ Consulta [docs/ROADMAP.md](docs/ROADMAP.md) para los hitos y sus criterios de va
 
 Para trabajar desde Windows, sigue la [guía de VS Code y conexión del teléfono por ADB](docs/WINDOWS_VSCODE.md). Incluye las herramientas iniciales, el trabajo local con Codex y tareas para consultar el modelo, la versión de Android y las arquitecturas del dispositivo.
 
-Todavía no hay un comando de compilación de este port. Las instrucciones reproducibles se añadirán junto con la primera integración del runtime.
+Para compilar las sondas y probarlas desde PowerShell:
+
+```powershell
+wsl -d Ubuntu -- bash tools/android/build_native.sh
+python -B tools/android/test_device.py
+```
+
+La [guía Android](docs/ANDROID_NATIVE.md) incluye la preparación del NDK. Estas sondas no son un APK ni ejecutan el juego.

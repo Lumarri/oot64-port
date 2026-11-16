@@ -2,6 +2,39 @@
   "version": "2.0.0",
   "tasks": [
     {
+      "label": "MM3D: comprobar GPU del teléfono USB",
+      "type": "process",
+      "command": "python",
+      "args": ["-B", "tools/android/check_device.py"],
+      "problemMatcher": [],
+      "options": { "cwd": "${workspaceFolder}" }
+    },
+    {
+      "label": "MM3D: preparar NDK en WSL",
+      "type": "process",
+      "command": "wsl",
+      "args": ["-d", "Ubuntu", "--", "bash", "tools/android/setup_ndk.sh"],
+      "problemMatcher": [],
+      "options": { "cwd": "${workspaceFolder}" }
+    },
+    {
+      "label": "MM3D: compilar base Android ARM64",
+      "type": "process",
+      "command": "wsl",
+      "args": ["-d", "Ubuntu", "--", "bash", "tools/android/build_native.sh"],
+      "problemMatcher": ["$gcc"],
+      "group": { "kind": "build", "isDefault": true },
+      "options": { "cwd": "${workspaceFolder}" }
+    },
+    {
+      "label": "MM3D: probar base ARM64 en teléfono USB",
+      "type": "process",
+      "command": "python",
+      "args": ["-B", "tools/android/test_device.py"],
+      "problemMatcher": [],
+      "options": { "cwd": "${workspaceFolder}" }
+    },
+    {
       "label": "Android: listar dispositivos",
       "type": "process",
       "command": "adb",
@@ -28,6 +61,16 @@
       "command": "adb",
       "args": ["-d", "shell", "getprop", "ro.product.cpu.abilist"],
       "problemMatcher": []
+    },
+    {
+      "label": "MM3D: verificar y extraer ROM local",
+      "type": "process",
+      "command": "python",
+      "args": ["tools/extract_mm3d_rom.py"],
+      "problemMatcher": [],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      }
     }
   ]
 }

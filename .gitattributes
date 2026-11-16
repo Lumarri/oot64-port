@@ -1,0 +1,2 @@
+# Bash scripts are run by WSL even when this repository is cloned on Windows.
+*.sh text eol=lf

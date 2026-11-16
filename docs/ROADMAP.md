@@ -11,26 +11,32 @@
 
 - [x] Revisar MM3D-PC, TriAevum y su base experimental para Android.
 - [x] Registrar fuentes y límites de la evaluación en [TECHNICAL_BASE.md](TECHNICAL_BASE.md).
-- [ ] Confirmar la base que se integrará, sus licencias y las atribuciones necesarias.
-- [ ] Fijar la revisión exacta y las dependencias de la base adoptada.
-- [ ] Obtener modelo, versión de Android, arquitectura y capacidades gráficas del teléfono de prueba.
-- [ ] Reproducir la compilación del runtime para ARM64 desde Linux/WSL2.
-- [ ] Verificar en el teléfono las pruebas del runtime y el renderizador.
+- [x] Confirmar la base que se integrará, sus licencias y las atribuciones necesarias.
+- [x] Fijar la revisión exacta y las dependencias de la base adoptada.
+- [x] Obtener modelo, versión de Android, arquitectura y capacidades gráficas del teléfono de prueba.
+- [x] Compilar los servicios, soporte ARM64 y sondas de la base desde WSL2.
+- [x] Ejecutar las siete pruebas de servicios/cargador en el moto g24 power.
+- [x] Comprobar la incompatibilidad de Vulkan/NRI upstream y validar dibujo/compute sintéticos en GLES 3.2.
+- [ ] Adaptar PICA a GLES 3.2 y compilar el runtime Android completo para este teléfono.
+- [ ] Verificar la presentación del renderizador PICA en el teléfono.
 
 Criterio de cierre: base seleccionada con compilación reproducible y evidencia de funcionamiento de sus componentes en el dispositivo de prueba.
 
 ## 2. Preparación local del juego
 
-- [ ] Fijar la región y revisión de Majora's Mask 3D admitidas.
-- [ ] Verificar la copia local mediante los identificadores y hashes del extractor elegido.
-- [ ] Documentar extracción local de ExeFS/RomFS y generación del código recompilado.
+- [x] Fijar la región y revisión de Majora's Mask 3D admitidas.
+- [x] Verificar la copia local mediante los identificadores y hashes del extractor elegido.
+- [x] Documentar extracción local de ExeFS/RomFS.
+- [ ] Generar el código recompilado del juego.
 - [ ] Compilar el módulo del juego para Android ARM64.
-- [ ] Mantener ROM, recursos y código derivado del juego fuera de Git.
+- [x] Mantener ROM, recursos y código derivado del juego fuera de Git.
 
 Criterio de cierre: módulo de Majora's Mask 3D y recursos locales compatibles con la misma revisión del runtime.
 
 ## 3. Primer arranque en Android
 
+- [ ] Adaptar el dialecto GLSL y las operaciones PICA de la ruta OpenGL a GLES 3.2.
+- [ ] Integrar el host Android con la ruta GLES, sin forzar Vulkan/NRI.
 - [ ] Adaptar el arranque y el cargador Android al módulo de Majora's Mask 3D.
 - [ ] Integrar selección de archivos con el selector de documentos de Android y almacenamiento de la aplicación.
 - [ ] Preparar un APK de desarrollo y comprobar bibliotecas, ABI y carga del módulo.
@@ -65,8 +71,10 @@ Criterio de cierre: recorrido de juego reproducible con interfaz, controles, son
 | Destino | Android ARM64 |
 | Equipo de desarrollo | Windows con VS Code; Linux/WSL2 propuesto para compilación nativa |
 | Ruta de trabajo | Recompilación nativa |
-| Base candidata | MM3D-PC / TriAevum; sin integrar |
-| Región y revisión | MM3D-PC documenta USA v1.1; confirmar al adoptar la base |
-| Versión mínima de Android | Pendiente de validación; la base experimental usa API 29 |
-| Renderizador candidato | Vulkan/NRI; compatibilidad del teléfono pendiente |
+| Base de trabajo | TriAevum/Moonfall Curse `672d13f`, fijada en `config/android-base.json`; fuentes privadas en WSL e integración mediante scripts |
+| Licencias al integrar | GPL-3.0-or-later (contribuciones originales) y avisos de cada componente; sin ROM ni código del juego |
+| Región y revisión | Europa Rev 1, CTR-P-AJRP, build 1.1.0, descifrada; extraída en `extracted/mm3d-eur-rev1/` |
+| Teléfono de prueba | moto g24 power, Android 14 (API 34), `arm64-v8a`, Mali-G52 MC2, Vulkan 1.1 nivel 1 |
+| Versión mínima de Android | API 29 en el prototipo; el teléfono cumple API 34 |
+| Renderizador para el dispositivo objetivo | Adaptación GLES 3.2 pendiente: el Vulkan/NRI upstream requiere 1.2 y synchronization2, ausentes en el moto |
 | APK propio y pruebas de juego | Pendientes |

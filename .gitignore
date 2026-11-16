@@ -62,9 +62,16 @@ keystore.properties
 !.env.example
 
 # IDE y sistema operativo
+__pycache__/
+*.pyc
 .idea/
 *.iml
 .DS_Store
 Thumbs.db
 *.swp
 *.swo
+
+# Herramientas locales y dependencias
+/tools/android-ndk*
+/source/
+.ssh/

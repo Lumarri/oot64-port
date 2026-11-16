@@ -1,0 +1,18 @@
+{
+  "repository": "https://github.com/coccofresco/TriAevum.git",
+  "commit": "672d13f15cb336bc7651c861d23cf45924a9f936",
+  "title": "mm3d",
+  "rom_recipe": "mm3d-eur-local-6eec27b1",
+  "abi": "arm64-v8a",
+  "api": 29,
+  "ndk_revision": "29.0.14206865",
+  "ndk_archive": "android-ndk-r29-linux.zip",
+  "ndk_archive_sha1": "87e2bb7e9be5d6a1c6cdf5ec40dd4e0c6d07c30b",
+  "ndk_directory": "android-ndk-r29",
+  "cmake_minimum": "3.30",
+  "device_target": {
+    "model": "moto g24 power",
+    "gpu": "Mali-G52 MC2",
+    "renderer_workstream": "GLES 3.2 compatibility, not yet integrated"
+  }
+}
