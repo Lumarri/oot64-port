@@ -1,0 +1,33 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Android: listar dispositivos",
+      "type": "process",
+      "command": "adb",
+      "args": ["devices", "-l"],
+      "problemMatcher": []
+    },
+    {
+      "label": "Android: modelo del teléfono USB",
+      "type": "process",
+      "command": "adb",
+      "args": ["-d", "shell", "getprop", "ro.product.model"],
+      "problemMatcher": []
+    },
+    {
+      "label": "Android: versión del teléfono USB",
+      "type": "process",
+      "command": "adb",
+      "args": ["-d", "shell", "getprop", "ro.build.version.release"],
+      "problemMatcher": []
+    },
+    {
+      "label": "Android: arquitecturas del teléfono USB",
+      "type": "process",
+      "command": "adb",
+      "args": ["-d", "shell", "getprop", "ro.product.cpu.abilist"],
+      "problemMatcher": []
+    }
+  ]
+}

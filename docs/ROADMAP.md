@@ -5,6 +5,7 @@
 - [x] Definir Android como plataforma de destino.
 - [x] Documentar el alcance y el estado inicial.
 - [x] Excluir ROMs, recursos locales y resultados de compilación del control de versiones.
+- [x] Preparar la guía de Windows y las tareas de VS Code para comprobar el teléfono por ADB.
 
 ## 1. Selección de la base técnica
 

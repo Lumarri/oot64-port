@@ -17,6 +17,7 @@ Elegir una base técnica mantenida y revisar su soporte para Android, sus licenc
 Referencias para evaluar:
 
 - [Ship of Harkinian / Shipwright](https://github.com/HarbourMasters/Shipwright): proyecto de port existente.
+- [Shipwright-Android](https://github.com/Waterdish/Shipwright-Android): adaptación para Android que estamos evaluando.
 - [zeldaret/oot](https://github.com/zeldaret/oot): proyecto de decompilación de Ocarina of Time.
 
 Estas referencias todavía no se han incorporado como dependencias. El código y las licencias de terceros se conservarán cuando se seleccione e integre la base.
@@ -33,4 +34,6 @@ Consulta [docs/ROADMAP.md](docs/ROADMAP.md) para los hitos y sus criterios de va
 
 ## Desarrollo
 
-Por ahora no hay dependencias que instalar ni un comando de compilación. Las instrucciones reproducibles de compilación se añadirán junto con la primera integración del motor.
+Para trabajar desde Windows, sigue la [guía de VS Code y conexión del teléfono por ADB](docs/WINDOWS_VSCODE.md). Incluye las herramientas iniciales, el trabajo local con Codex y tareas para consultar el modelo, la versión de Android y las arquitecturas del dispositivo.
+
+Todavía no hay un comando de compilación del juego. Las instrucciones reproducibles se añadirán junto con la primera integración del motor.
