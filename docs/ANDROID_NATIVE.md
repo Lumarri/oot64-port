@@ -62,6 +62,33 @@ La sonda GLES crea un contexto EGL 3.2 y un pbuffer RGBA8/depth24, compila shade
 
 ## Trabajo siguiente para este teléfono
 
+### Validación sin teléfono
+
+La sonda también puede compilarse para Linux y ejecutarse en Mesa/llvmpipe, con
+renderizado por software. Usa el mismo traductor y los mismos casos de dibujo que
+el binario Android. Desde PowerShell:
+
+```powershell
+wsl -d Ubuntu -u root -- apt-get install -y libegl-dev libgles-dev libgl1-mesa-dri
+wsl -d Ubuntu -- bash tools/android/test_gles_host.sh
+```
+
+El script exige el checkout upstream limpio y fijado, usa un directorio de build
+separado y guarda el resultado en `local/android-logs/gles-host.log`. También hay
+una tarea de VS Code. Este resultado no acredita compatibilidad ni rendimiento
+en Mali. Para repetir solamente la sonda gráfica en el teléfono conectado:
+
+```powershell
+wsl -d Ubuntu -- bash tools/android/build_native.sh
+python -B tools/android/test_device.py --case gles32_draw_and_compute
+```
+
+Con `--case`, el código de salida refleja únicamente las pruebas seleccionadas;
+el informe conserva la evaluación Vulkan independiente y el hash del ejecutable.
+Sin ese argumento se mantiene la comprobación completa, incluido el fallo NRI.
+
+### Pendientes de integración
+
 1. Adaptar y validar el dialecto de shaders PICA a GLSL ES 3.20, incluidos precisión, bindings y profundidad.
 2. Portar las operaciones GL de escritorio: `glClearDepth`/`glDrawBuffer`, composición, texturas, framebuffer y operaciones lógicas; resolver las diferencias semánticas con GLES mediante casos de prueba.
 3. Integrar esa ruta en el host Android sin forzar Vulkan/NRI y validar presentación, recreación de superficies, controles y audio.
@@ -69,6 +96,109 @@ La sonda GLES crea un contexto EGL 3.2 y un pbuffer RGBA8/depth24, compila shade
 5. Empaquetar el APK de desarrollo y demostrar arranque del juego en el moto g24 power.
 
 El éxito de pruebas de servicios o de un triángulo sintético no acredita un APK jugable. Tampoco se extrapola rendimiento de Adreno 830 a Mali-G52.
+
+## Revisión y continuación del 17 de noviembre de 2026
+
+Se encontró otra copia del proyecto en WSL, `~/mm3d-android`,
+con el commit `6053bfc`. Al revisarla, sus archivos de `ports/`, `tools/android/`,
+`docs/` y `config/` coincidían byte por byte con esta copia Windows. Sus exclusiones
+adicionales para NDK, `source/`, `.ssh/` y `.venv/` se incorporaron aquí. No se
+encontraron archivos del juego versionados en ninguna de las dos copias revisadas.
+Los cambios de esta continuación están en la copia Windows; la copia Git WSL
+no se sincroniza automáticamente. El checkout upstream y los builds siguen en WSL.
+
+La traducción inicial reutiliza el conversor GL de TriAevum y añade GLSL ES 3.20
+y precisión alta para float, int, sampler2D y usampler2D. Sigue siendo un subconjunto:
+rechaza variantes con `#extension` y necesita validar los shaders completos
+generados por PICA antes de integrar el backend.
+
+**PASS en Mesa llvmpipe (GLES 3.2)**: compilación/enlace, texturas RGBA8 y R32UI,
+bindings 0/2/13, actualización de UBO, profundidad 0.25/0.75 con coordenada
+homogénea w=2, oclusión en ambos órdenes, recorte fuera de los planos cercano y
+lejano, rechazo de dialectos no admitidos, dibujo básico y compute/SSBO.
+Los casos usan shaders sintéticos originales, sin datos derivados de la ROM.
+La compilación Android y el staging de 12 ELF ARM64 también pasaron.
+
+Tras conectar el teléfono, la prueba ampliada obtuvo **PASS en el moto g24 power**
+(Android 14, Mali-G52 MC2, GLES 3.2), con salida 0 y sin errores en stderr.
+Se verificaron los mismos casos de texturas, uniforms, profundidad, oclusión,
+recorte y compute descritos arriba, ejecutando la sonda por ADB.
+Evidencia privada: `local/android-logs/device-20261117T135836851508Z.json`.
+SHA-256 del ejecutable probado:
+`0ad5403b030871ffc596ca99b5249e5db70bf23787611f3ec8ce31f9535331dc`.
+El requisito Vulkan/NRI sigue sin cumplirse; este PASS corresponde a la ruta GLES
+sintética. No hay APK ni arranque del juego validado.
+
+### Generador PICA ejecutado en GLES
+
+La sonda incorpora ahora el generador de fragmentos del checkout upstream fijado,
+compilado directamente sin copiar sus fuentes al repositorio. Genera y traduce
+las seis variantes paramétricas base: iluminación desactivada, con tablas LUT o
+sin tablas LUT, cada una con textura 0 normal o entera. Las seis compilan y enlazan
+en Mesa y en la Mali-G52 MC2 del moto g24 power.
+
+Además, la variante sin iluminación y con textura normal se ejecuta: un UBO en
+binding 4 configura las seis etapas TEV para seleccionar el color primario.
+El dibujo devuelve RGBA aproximadamente (64,128,191,255), como se esperaba.
+El tamaño del UBO se consulta al controlador; no se presupone su disposición total.
+El vertex shader de esta prueba es una interfaz sintética compatible, y los datos
+de entrada no provienen de la ROM. La iluminación y las otras cinco variantes se
+validan por compilación/enlace, no por comparación de sus resultados de dibujo.
+
+**PASS en el teléfono**, informe privado
+`local/android-logs/device-20261117T140334667938Z.json`. El informe registra el
+hash del ejecutable y los campos `generated_pica_fragment_variants_linked: 6`
+y `generated_pica_tev_draw_readback: true`. Se conserva también el PASS de
+profundidad, recorte, texturas y compute de las pruebas anteriores.
+
+Esto todavía no integra `gfx_opengl_pica.cpp` en Android: el backend upstream
+desactiva PICA bajo `USE_OPENGLES` y usa operaciones de escritorio como
+`glLogicOp`, `glDrawBuffer` y `glClearDepth`. Queda adaptar esas operaciones,
+validar más estados PICA (incluidas sombras), generar vértices desde programas
+PICA y conectar el host Android y el módulo MM3D.
+
+### Operaciones lógicas RGBA8 en GLES
+
+Se añadió `ports/android/renderer/pica_gles_logic.h`: las 16 operaciones de
+`PicaLogicOperation` se calculan sobre canales de 8 bits mediante GLSL. El destino
+se obtiene con `GL_EXT_shader_framebuffer_fetch` coherente; blending y dithering
+deben estar desactivados. La sonda exige la extensión y falla si no está disponible.
+
+**PASS en Mesa y en el moto g24 power**. Por operación se comparan las 65 536
+parejas posibles de valores fuente/destino, en los cuatro canales de una superficie
+RGBA8 de 256x256, contra tablas de verdad independientes calculadas en CPU.
+Un segundo dibujo comprueba el destino actualizado y máscaras que preservan verde
+y alfa. Se verifican los píxeles de ambos dibujos. No se ensayan MSAA ni formatos
+RGB565/RGBA4/RGB5A1; tampoco está conectado todavía al backend completo.
+
+Informe privado: `local/android-logs/device-20261117T141111789604Z.json`.
+Los campos `rgba8_logic_operations: 16` y `logic_coherent_fetch_and_masks: true`
+registran el éxito. También pasaron las pruebas anteriores del generador PICA,
+profundidad, texturas y compute en ese mismo ejecutable.
+
+### Composición de TEV y operaciones lógicas
+
+`TranslatePicaFragmentWithRgba8Logic` conecta el fragment shader generado por
+upstream con las operaciones lógicas. Convierte su salida a `inout`, conserva el
+color de destino antes de ejecutar el shader y aplica la operación al resultado
+TEV. Añade la extensión coherente y el uniform `mm3d_logic_operation`. Esta es
+una variante de programa distinta: al integrarla, la caché del backend deberá
+distinguirla de la variante normal. El GLSL canónico de entrada no se modifica.
+
+El adaptador requiere la declaración de salida del generador fijado, rechaza los
+productores de sombras y falla si falta la capacidad de framebuffer fetch. Su
+contrato actual es RGBA8, con blending/dithering desactivados. No es un conversor
+de GLSL arbitrario ni está conectado aún al despachador de dibujos del runtime.
+
+**PASS en Mesa y en el moto** para las 16 operaciones aplicadas a un dibujo TEV
+generado sin iluminación. Se comprueban además alpha-test NEVER (conserva el
+destino al descartar el fragmento) y profundidad explícita: los uniforms producen
+`gl_FragDepth=0`, y GREATER contra profundidad cero debe rechazar el dibujo aunque
+la profundidad rasterizada sea 0.5. Esto verifica que la envoltura conserva ambas
+semánticas del shader original.
+
+Evidencia privada: `local/android-logs/device-20261117T141816343253Z.json`, campo
+`generated_pica_logic_discard_depth: true`. Continúan pasando las pruebas previas.
 
 ## Resultado del 16 de noviembre de 2026
 

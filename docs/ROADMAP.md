@@ -17,6 +17,10 @@
 - [x] Compilar los servicios, soporte ARM64 y sondas de la base desde WSL2.
 - [x] Ejecutar las siete pruebas de servicios/cargador en el moto g24 power.
 - [x] Comprobar la incompatibilidad de Vulkan/NRI upstream y validar dibujo/compute sintéticos en GLES 3.2.
+- [x] Validar el dialecto GLES inicial con shaders sintéticos, texturas, uniforms, profundidad y recorte en Mesa y en la Mali-G52 del moto.
+- [x] Compilar/enlazar las seis variantes base de fragmentos PICA generadas por upstream en GLES y verificar un dibujo TEV en el moto.
+- [x] Implementar y validar las 16 operaciones lógicas RGBA8 mediante framebuffer fetch, con máscaras de escritura, en Mesa y en el moto.
+- [x] Conectar las operaciones lógicas al fragment shader PICA generado y validar descarte por alfa y profundidad explícita en el moto.
 - [ ] Adaptar PICA a GLES 3.2 y compilar el runtime Android completo para este teléfono.
 - [ ] Verificar la presentación del renderizador PICA en el teléfono.
 
