@@ -62,6 +62,7 @@ def main():
         run('push', str(stage / name), remote + '/' + name)
         run('shell', 'chmod', '700', remote + '/' + name)
     report = {'utc': stamp, 'base_commit': config['commit'], 'device': device,
+              'selected_cases': args.case or [case[0] for case in CASES],
               'renderer_preflight': collect(adb),
               'scope': 'shell_uid_probes_not_apk_or_gameplay', 'tests': []}
     report_path = ROOT / 'local/android-logs' / f'device-{stamp}.json'
@@ -77,6 +78,7 @@ def main():
         bounded = 'timeout 60 sh -c ' + shlex.quote(command)
         result = run('shell', bounded, check=False)
         record = {'name': label, 'exit_code': result.returncode,
+                  'executable_sha256': manifest['files'][executable]['sha256'],
                   'seconds': round(time.monotonic() - started, 3),
                   'stdout': result.stdout, 'stderr': result.stderr}
         report['tests'].append(record)

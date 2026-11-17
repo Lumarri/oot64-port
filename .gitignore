@@ -71,7 +71,8 @@ Thumbs.db
 *.swp
 *.swo
 
-# Herramientas locales y dependencias
+# Local Linux workspace tools and credentials
 /tools/android-ndk*
 /source/
 .ssh/
+.venv/

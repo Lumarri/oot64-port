@@ -1,2 +1,4 @@
+# Keep Windows and WSL checkouts consistent; binary files stay unchanged.
+* text=auto eol=lf
 # Bash scripts are run by WSL even when this repository is cloned on Windows.
 *.sh text eol=lf

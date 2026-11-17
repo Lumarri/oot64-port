@@ -2,6 +2,14 @@
   "version": "2.0.0",
   "tasks": [
     {
+      "label": "MM3D: probar shaders GLES en WSL (software)",
+      "type": "process",
+      "command": "wsl",
+      "args": ["-d", "Ubuntu", "--", "bash", "tools/android/test_gles_host.sh"],
+      "problemMatcher": ["$gcc"],
+      "options": { "cwd": "${workspaceFolder}" }
+    },
+    {
       "label": "MM3D: comprobar GPU del teléfono USB",
       "type": "process",
       "command": "python",
