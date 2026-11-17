@@ -2,6 +2,46 @@
   "version": "2.0.0",
   "tasks": [
     {
+      "label": "MM3D: compilar modulo privado ARM64",
+      "type": "process",
+      "command": "wsl",
+      "args": ["-d", "Ubuntu", "--", "bash", "tools/android/build_title.sh"],
+      "problemMatcher": ["$gcc"],
+      "options": { "cwd": "${workspaceFolder}" }
+    },
+    {
+      "label": "MM3D: probar carga del modulo privado en USB",
+      "type": "process",
+      "command": "python",
+      "args": ["-B", "tools/android/test_title.py"],
+      "problemMatcher": [],
+      "options": { "cwd": "${workspaceFolder}" }
+    },
+    {
+      "label": "MM3D: ejecutar inicio real hasta primer SVC en USB",
+      "type": "process",
+      "command": "python",
+      "args": ["-B", "tools/android/test_startup.py"],
+      "problemMatcher": [],
+      "options": { "cwd": "${workspaceFolder}" }
+    },
+    {
+      "label": "MM3D: compilar APK de prueba visible",
+      "type": "process",
+      "command": "python",
+      "args": ["-B", "tools/android/build_window_apk.py"],
+      "problemMatcher": ["$gcc"],
+      "options": { "cwd": "${workspaceFolder}" }
+    },
+    {
+      "label": "MM3D: instalar y probar APK visible en USB",
+      "type": "process",
+      "command": "python",
+      "args": ["-B", "tools/android/test_window_app.py", "--install"],
+      "problemMatcher": [],
+      "options": { "cwd": "${workspaceFolder}" }
+    },
+    {
       "label": "MM3D: probar shaders GLES en WSL (software)",
       "type": "process",
       "command": "wsl",

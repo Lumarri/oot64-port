@@ -17,7 +17,24 @@ Avance del **17 de noviembre de 2026**, validado también en la Mali-G52 del mot
 - Las 16 operaciones lógicas RGBA8 pasan pruebas de lectura del destino y máscaras de escritura.
 - La combinación de TEV y operaciones lógicas conserva el descarte por alfa y la profundidad explícita.
 
-Son pruebas controladas sin datos del juego. El backend completo, el módulo MM3D y el APK siguen pendientes.
+Ya hay un **APK técnico visible**, instalado y probado en el moto: muestra una
+textura animada mediante el shader TEV y el backend GLES. Pasaron pausa/regreso
+y recreación de contexto al girar el teléfono. Son datos sintéticos; el backend
+completo y el primer arranque del juego siguen pendientes.
+La [guía del APK de prueba](docs/ANDROID_WINDOW_APP.md) explica cómo compilarlo,
+instalarlo y repetir las comprobaciones.
+
+El **módulo real de MM3D ya está compilado para ARM64** y pasó la comprobación
+del cargador upstream en el moto: ABI V2, 241 681 entradas y capacidades de
+observación de escrituras/salida. Procede de 18 751 funciones traducidas en
+local. Esta prueba no ejecuta el juego. La ROM, las fuentes traducidas y el
+módulo permanecen privados; la [guía del módulo](docs/ANDROID_TITLE_MODULE.md)
+documenta su generación, compilación y prueba.
+
+La prueba de inicio ya **ejecuta código real desde la entrada de MM3D hasta su
+primer SVC en el moto**: 292 449 bloques, sin fallos de memoria ni instrucciones
+rechazadas. Pausar y reanudar por bloques produce los mismos registros y memoria.
+Se detiene antes de atender ese servicio CTR; todavía no arranca una escena.
 
 ## Objetivo
 
@@ -27,7 +44,10 @@ La ruta de trabajo es la recompilación nativa: traducir localmente el código d
 
 ## Siguiente paso
 
-Conectar la adaptación GLES al procesamiento de dibujos del runtime y cubrir los formatos y estados PICA pendientes. Su Vulkan 1.1.177 no cumple los requisitos del renderizador actual de TriAevum; la ruta en desarrollo usa OpenGL ES 3.2.
+Conectar el módulo MM3D y la adaptación GLES al runtime Android, con sus recursos
+locales, y cubrir los formatos y estados PICA pendientes. Su Vulkan 1.1.177 no
+cumple los requisitos del renderizador actual de TriAevum; la ruta en desarrollo
+usa OpenGL ES 3.2.
 
 El dump europeo CTR-P-AJRP coincide con la receta de Moonfall Curse. La [guía de compilación y pruebas Android](docs/ANDROID_NATIVE.md) documenta la base, comandos, resultados y límites del primer hito.
 
@@ -63,3 +83,10 @@ python -B tools/android/test_device.py
 ```
 
 La [guía Android](docs/ANDROID_NATIVE.md) incluye la preparación del NDK. Estas sondas no son un APK ni ejecutan el juego.
+
+Para compilar e instalar el prototipo gráfico visible (tampoco ejecuta el juego):
+
+```powershell
+python -B tools/android/build_window_apk.py
+python -B tools/android/test_window_app.py --install
+```

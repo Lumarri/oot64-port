@@ -200,6 +200,243 @@ semánticas del shader original.
 Evidencia privada: `local/android-logs/device-20261117T141816343253Z.json`, campo
 `generated_pica_logic_discard_depth: true`. Continúan pasando las pruebas previas.
 
+### Gestión de superficies GLES
+
+`GlesRenderTarget` posee un framebuffer RGBA8 con profundidad de 24 bits y stencil
+de 8 bits. Reutilizar las mismas dimensiones conserva los objetos y su contenido.
+El cambio de tamaño prepara los nuevos objetos antes de sustituir los anteriores;
+los tamaños inválidos se rechazan sin perder el destino anterior. La liberación
+es explícita o por destructor y exige el contexto GLES propietario activo.
+El gestor conserva bindings ajenos y actualiza los bindings de lectura/escritura,
+renderbuffer y unidad de textura activa que apuntaban a los objetos sustituidos.
+Los consumidores en otras unidades deben volver a vincular la nueva textura.
+
+**PASS en Mesa y en el moto g24 power**:
+
+- Creación y reutilización de superficies, rechazo de dimensiones nulas/excesivas.
+- Pruebas de profundidad y stencil verificadas mediante lectura de píxeles.
+- Copia de superficies 400x240 y 320x240 a una composición 400x480, con margen negro.
+- Cambio de tamaño mientras el destino está vinculado, eliminación de objetos
+  anteriores, liberación y recreación.
+- Ejecución de los fragment shaders PICA, TEV y operaciones lógicas dentro de una
+  superficie propia del gestor, conservando las pruebas de alfa y profundidad.
+
+Informe privado: `local/android-logs/device-20261117T144026164738Z.json`, campo
+`owned_targets_depth_stencil_resize_blit: true`. La composición se verifica fuera
+de pantalla: todavía no presenta las pantallas del juego en una Activity Android.
+Este gestor tampoco resuelve la caché de memoria 3DS, alias entre superficies,
+formatos de color empaquetados, MSAA ni pérdida/recreación del contexto Android.
+
+### Consumidor de dibujos y texturas PICA
+
+`ports/android/renderer/pica_gles_draw.cpp` consume directamente el tipo
+`Fast::Renderer3ds::PicaDrawView` del upstream fijado. Sube geometría e índices,
+vincula UBO en 0/4, traduce y almacena programas GLES, y aplica blending, culling,
+scissor, máscaras, profundidad, stencil y operaciones lógicas RGBA8. La variante
+lógica tiene su propia entrada de caché. Valida los atributos y uniforms activos
+del programa, límites de buffers y estados admitidos antes de dibujar.
+
+Las texturas 2D de CPU pasan por `DecodePicaTextureRgba8` del upstream, conservando
+su decodificación tiled. Se suben como RGBA8 a las unidades 1/2/3 y admiten clamp,
+repeat, mirrored repeat y filtros nearest/linear en nivel cero. Los bytes se
+decodifican y suben en cada envío: no se presupone que un hash sin cambios implique
+contenido idéntico. Esta implementación prioriza corrección; aún no tiene caché
+de texturas ni de geometría.
+
+**PASS en Mesa y en el moto g24 power**, con lectura de píxeles:
+
+- Geometría con índices de 8/16 bits, base vertex, listas/tiras/abanicos de
+  triángulos, estados de rasterizado y recuperación tras entradas rechazadas.
+- Separación de programas normales y lógicos en caché, liberación y recreación.
+- Texturas sintéticas RGBA8, RGB565, RGB5A1, RGBA4, ETC1 y ETC1A4; repetición,
+  espejo, clamp, filtrado y actualización de bytes conservando el mismo hash.
+- Dibujo indexado con fragment shader paramétrico TEV original sin iluminación,
+  uniforms empaquetados upstream y textura tiled. El color verificado es
+  RGBA (255,128,64,255), distinto del color primario rojo de los vértices.
+
+Informe privado: `local/android-logs/device-20261117T173556017075Z.json`, salida 0.
+Campos: `upstream_pica_draw_contract`, `pica_native_texture_upload_sampling` y
+`generated_tev_textured_draw_contract`, todos `true`. La misma ejecución conserva
+las comprobaciones anteriores de superficies, generador PICA, lógica y compute.
+La compilación ARM64 y el staging de los 12 ELF también pasaron.
+
+La prueba combinada detectó inicialmente una máscara TEV sin referencias a
+texturas en sus datos de entrada. Se corrigió construyendo `PicaTevProgram` con
+`Control[1]=1`, además de habilitar la textura en el control del fragmento.
+La comprobación conserva el color esperado y ahora informa los canales reales
+ante discrepancias.
+
+Este consumidor es síncrono y todavía no está conectado al despachador completo
+ni a una ventana Android. Exige destino RGBA8/depth24/stencil8, texturas 2D de
+CPU de hasta 1024x1024, nivel cero y shaders con la interfaz admitida. Rechaza
+LUT de iluminación, sombras, referencias a copias GPU, mipmaps, sesgo LOD,
+wrapping de borde/asimétrico, geometría programable y otros estados no resueltos.
+La caché inicial admite hasta 64 programas y falla al excederlos; necesita una
+política adecuada para el juego. El llamador conserva el orden y borrado de
+superficies; falta resolver alias y coherencia con la memoria 3DS. Los vértices y
+texturas del ensayo son sintéticos. No acredita aún escenas ni rendimiento del
+juego. Las fases siguientes se detallan en [ROADMAP.md](ROADMAP.md).
+
+### Adaptador inicial de la interfaz del runtime
+
+`PicaGlesBackend` implementa la interfaz virtual `PicaRenderBackend` del checkout
+fijado. El código upstream no se modifica. Usa `PicaGlesDraw` y conserva sus
+superficies por namespace, direcciones físicas de color/profundidad y dimensiones.
+Un dibujo posterior sobre el mismo destino conserva color, profundidad y stencil.
+Un destino nuevo empieza transparente, con profundidad 1 y stencil 0.
+
+El adaptador implementa borrado completo, reflejo GPU de fills GX de 32 bits que
+coinciden exactamente con un attachment, cola de finalizaciones y reset.
+Los fills anteriores a la creación de un destino se retienen hasta el primer
+dibujo válido que los consume; repetir exactamente su rango conserva el valor
+más reciente. Se rechazan escrituras parciales o rangos pendientes solapados.
+Los alias entre destinos y las texturas que leen memoria de un destino también
+se rechazan, en lugar de dibujar con contenido GPU desactualizado. Los mismos
+rangos en namespaces diferentes tienen superficies independientes.
+
+Las finalizaciones siguen el contrato GL upstream: confirman que los spans de
+entrada ya se copiaron a objetos propios. No son un fence que garantice GPU
+inactiva. El llamador sigue siendo responsable de la RAM del invitado y de sus
+interrupciones. Los límites iniciales son 64 destinos, 128 fills pendientes y
+128 finalizaciones sin recoger. Los límites de programa y estados del consumidor
+de dibujos siguen vigentes.
+
+**PASS en Mesa/llvmpipe y compilación ARM64 correcta**, 17 de noviembre de 2026.
+La sonda llama por una referencia `PicaRenderBackend&`, verifica píxeles de
+color/profundidad/stencil, persistencia, aislamiento, fills pendientes consumidos
+una sola vez, rollback de destinos nuevos ante un dibujo inválido, rechazos de
+alias, orden de finalizaciones, reset y reutilización. El campo nuevo es
+`runtime_backend_targets_fills_completions: true`.
+Registro local: `local/android-logs/gles-host.log`. SHA-256 del ejecutable ARM64
+preparado en el manifiesto:
+`05f28b638f8f1865ed4ba1e61cfac4276ffed3a6d87dbd9b821446470c0805a1`.
+
+**Prueba de esta versión en el moto pendiente**: `adb devices` devolvió una lista
+vacía y la ejecución se detuvo en `get-state`, antes de subir o ejecutar archivos.
+Los PASS anteriores en el teléfono corresponden a las versiones identificadas
+en sus informes, no a este adaptador nuevo.
+
+Falta instanciar el adaptador en el host Android y conectarlo al puente completo
+de planes del runtime. La sonda usa datos sintéticos y la interfaz virtual, sin
+arrancar ese host. La transferencia y el scanout añadidos después se describen
+abajo; siguen pendientes la copia GPU a RAM, capturas de productores y una
+ventana Android visible. Tampoco se implementan snapshots para
+restaurar estado GPU al pausar; la implementación base rechaza esas operaciones.
+
+### Transferencia y presentación GLES
+
+`SubmitPicaDisplayTransfer` copia ahora un destino RGBA8 a una imagen propia,
+identificada por namespace y dirección física de salida. La copia conserva su
+contenido aunque el origen se borre o reciba más dibujos. Un fallo de validación
+o presentación conserva la imagen publicada anteriormente. Se admiten el tamaño
+original, reducción horizontal por dos y reducción 2x2 con filtrado lineal; las
+dimensiones deben coincidir con la fuente completa y el modo declarado.
+
+`GlesScanout` transforma el formato físico vertical de CTR a la imagen lógica
+horizontal. Aplica el flip derivado de los flags de transferencia, ajusta la
+relación de aspecto y centra la imagen. Replace borra el destino a negro opaco;
+AlphaOverlay conserva el contenido y combina RGB por alfa fuente. El alfa de
+salida se calcula como `src.a + dst.a * (1 - src.a)`.
+
+El host presta el framebuffer y sus dimensiones mediante
+`ConfigurePresentation`; el framebuffer 0 permite usar la superficie EGL del
+host. `DisablePresentation` desvincula ese destino sin destruirlo. El propietario
+debe reconfigurarlo al cambiar de tamaño y desvincularlo antes de destruirlo.
+Reset elimina las imágenes y shaders y exige configurar otra vez la presentación.
+Este código no crea una Activity ni llama a `eglSwapBuffers`.
+
+**PASS en Mesa/llvmpipe y compilación ARM64 correcta**. La prueba comprueba:
+
+- Cuatro colores asimétricos para detectar rotación o flip incorrectos.
+- Bordes negros y presentación tanto en un FBO prestado como en el framebuffer
+  EGL por defecto; este último es un pbuffer, no una ventana Android.
+- Reducción horizontal y 2x2 de texeles alternados, verificando el promedio.
+- Transparencias sobre rojo, preservando el contenido fuera de la imagen.
+- Aislamiento de namespaces, conservación tras cambiar el origen, resize de la
+  imagen de transferencia, reset y recreación.
+- Rechazo de modos/formatos no implementados, dimensiones incompatibles, alias,
+  presentación sin configurar y framebuffer prestado eliminado; ante errores se
+  conserva el snapshot publicado anteriormente.
+
+El campo de resultado es `display_transfer_rotation_scaling_overlay: true`.
+Registro Mesa: `local/android-logs/gles-host.log`. SHA-256 ARM64 preparado:
+`a3b8308211da6beb937b8b0dab7983f0a747029c2ae52ba2c84a5f9274f83887`.
+
+**PASS también en el moto g24 power**, con el mismo ejecutable y salida 0.
+Informe privado: `local/android-logs/device-20261117T204855650869Z.json`.
+La ejecución confirma además `runtime_backend_targets_fills_completions: true`,
+por lo que cierra la validación del adaptador que antes estaba pendiente por
+desconexión USB. Continúan pasando las pruebas anteriores de shaders, texturas,
+superficies, profundidad/stencil, operaciones lógicas y compute. Todo se ejecuta
+fuera de pantalla mediante ADB; no presenta todavía una aplicación visible.
+
+Esta ruta inicial admite RGBA8 a RGBA8 con salida lineal, flags de flip,
+input-linear/dont-swizzle y escalado reconocidos. Otros bits se rechazan. No
+materializa escrituras en la RAM 3DS ni completa interrupciones por su cuenta:
+el runtime debe solicitar la finalización después del envío. Se rechazan
+`MaterializeGuest`, `RenderTargetCapture`, raw texture copies, salidas tiled,
+formatos empaquetados, recortes de la fuente y alias. Hay un límite inicial de
+64 imágenes; se crea un reemplazo por transferencia para conservar la imagen
+anterior si falla. Faltan reutilización eficiente, integración con el host,
+composición de ambas pantallas y pruebas del ciclo de vida Android.
+
+### APK técnico visible y recreación de contexto
+
+El prototipo de [ANDROID_WINDOW_APP.md](ANDROID_WINDOW_APP.md) ya está instalado
+y probado en el moto g24 power. Usa una NativeActivity con EGL 3.2, el generador
+TEV real y datos sintéticos, presentados mediante `eglSwapBuffers`. Comparte
+`mm3d_gles_renderer` con la sonda; no introduce una segunda ruta de dibujo.
+
+**PASS** en ventana visible, regreso tras salir al inicio y giro de pantalla con
+recreación de Activity/superficie/contexto. Se revisaron capturas vertical y
+horizontal. Evidencia privada: `local/android-logs/window-20261117T211340246938Z/`.
+El APK probado es `local/android-apk/mm3d-window-debug.apk`, SHA-256
+`6437db12b09bdca9efa7f0e1f27913c2ec0482d818dbd343197db3e99b5f2d05`.
+
+Se añadió `AbandonContext` a los propietarios de recursos GLES para olvidar
+nombres de un contexto perdido sin intentar borrarlos en otro. Las operaciones
+Release/destructor sobre objetos vacíos no hacen llamadas GL. Una prueba crea un
+backend, destruye su contexto, crea otro independiente y confirma que abandonar
+el backend viejo conserva los recursos y dibujos del nuevo. No equivale a
+provocar el error real `EGL_CONTEXT_LOST` del controlador.
+
+**PASS en Mesa y en el moto**, informe privado
+`local/android-logs/device-20261117T211655771694Z.json`, salida 0 y campo
+`egl_context_recreation_abandon: true`. Continúan pasando todos los casos previos
+de dibujo, superficies, lógica, transferencias y compute en la misma ejecución.
+
+Falta conectar el módulo del juego y su puente de planes al host: este APK
+todavía no carga MM3D, ni incluye sus archivos o recursos. Tampoco tiene menú de
+configuración, controles, audio o guardado. La pausa/recreación se valida aquí
+con un patrón reconstruible, sin estado de juego que conservar. El host SDL
+upstream queda sin modificaciones.
+
+### Módulo real MM3D ARM64
+
+La [ruta privada del módulo](ANDROID_TITLE_MODULE.md) ya generó 18 751 funciones
+en 259 archivos y compiló la biblioteca ARM64 con NDK r29. El cargador real
+upstream la aceptó en el moto g24 power: ABI V2, 241 681 entradas, entrada del
+juego y capacidades de observación de escrituras/salida verificadas, con salida 0.
+Informe privado: `local/android-logs/title-20261117T215135776549Z.json`.
+
+Esta comprobación carga y consulta el módulo mediante ADB; no ejecuta funciones
+del juego ni lo integra todavía con el host gráfico. La biblioteca y las fuentes
+traducidas siguen excluidas de Git y del APK sintético. El siguiente trabajo es
+conectar módulo, runtime, recursos locales y planes PICA al backend GLES.
+
+### Módulo real y ejecución inicial de CPU
+
+El [módulo privado MM3D](ANDROID_TITLE_MODULE.md) ya compila para ARM64 y pasa
+la carga ABI V2 en el moto. Una prueba adicional ejecuta desde `0x100000` hasta
+el primer SVC (`0x21`, `CreateAddressArbiter`), sin atenderlo: 292 449 bloques,
+cero fallos de memoria e instrucciones rechazadas. Al reanudar con presupuestos
+de bloques coinciden los registros y el contenido de memoria con la ejecución
+continua. Evidencia privada: `local/android-logs/startup-20261117T220115943912Z.json`.
+
+Esta ruta es independiente del APK sintético y no usa GPU ni RomFS en el
+dispositivo. Falta unir los servicios y el planificador CTR, los observadores
+MM3D, recursos y backend GLES para avanzar hacia el primer arranque con imagen.
+
 ## Resultado del 16 de noviembre de 2026
 
 Compilación ARM64 completada: 62 pasos upstream y 2 de la sonda GLES propia. Se verificaron y prepararon 12 archivos ELF64/AArch64 con alineación LOAD de al menos 16 KiB. Las pruebas se ejecutaron en el moto g24 power conectado por USB, como procesos del usuario shell de ADB.
