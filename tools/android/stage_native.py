@@ -1,6 +1,7 @@
 """Stage only ROM-free native probes and their libraries for Windows ADB."""
 import hashlib
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -50,6 +51,29 @@ def stage(build, ndk):
                                   'load_alignments': alignments}
     manifest_path.write_text(json.dumps(manifest, indent=2) + '\n')
     print(f'Staged {len(sources)} ARM64 files: {directory}')
+    if os.environ.get('MM3D_BUILD_WINDOW_APP') == 'ON':
+        window_dir = ROOT / 'local/android-window-native-stage'
+        window_dir.mkdir(parents=True, exist_ok=True)
+        window_manifest = {'base': config, 'scope': 'synthetic_native_activity_not_gameplay', 'files': {}}
+        (window_dir / 'manifest.json').unlink(missing_ok=True)
+        for name, source in {
+            'libmm3d_window.so': build / 'compat/libmm3d_window.so',
+            'libc++_shared.so': sources['libc++_shared.so'],
+        }.items():
+            header = source.read_bytes()[:20]
+            if header[:5] != b'\x7fELF\x02' or header[18:20] != b'\xb7\x00':
+                raise ValueError(f'Not an ELF64 AArch64 library: {source}')
+            headers = subprocess.check_output(
+                [str(prebuilt / 'bin/llvm-readelf'), '--program-headers', '--wide', str(source)], text=True)
+            alignments = [int(line.split()[-1], 16) for line in headers.splitlines() if line.strip().startswith('LOAD ')]
+            if not alignments or min(alignments) < 0x4000:
+                raise ValueError(f'ELF LOAD alignment below 16 KiB: {source}')
+            destination = window_dir / name
+            shutil.copy2(source, destination)
+            window_manifest['files'][name] = {'sha256': hashlib.sha256(destination.read_bytes()).hexdigest(),
+                                              'bytes': destination.stat().st_size, 'load_alignments': alignments}
+        (window_dir / 'manifest.json').write_text(json.dumps(window_manifest, indent=2) + '\n')
+        print(f'Staged native window prototype: {window_dir}')
 
 
 if __name__ == '__main__':

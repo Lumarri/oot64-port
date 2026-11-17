@@ -58,6 +58,11 @@ static GLuint Program(std::initializer_list<GLuint> shaders) {
 #include "pica_dialect_probe.h"
 #include "generated_pica_probe.h"
 #include "pica_logic_probe.h"
+#include "render_target_probe.h"
+#include "pica_backend_probe.h"
+#include "pica_transfer_probe.h"
+#include "context_recreation_probe.h"
+#include "pica_draw_probe.h"
 
 int main() {
     EGLDisplay display = EGL_NO_DISPLAY;
@@ -142,8 +147,9 @@ void main() { value = 0x4d4d3344u; }
         Require(glGetError() == GL_NO_ERROR && value == 0x4d4d3344u, "Compute/SSBO readback mismatch");
 
         TestPicaDialect();
-        TestGeneratedPicaFragments();
+        TestRenderTargets();
         TestPicaLogic();
+        TestPicaDrawContract();
         std::cout << "{\"renderer\":" << std::quoted(reinterpret_cast<const char*>(glGetString(GL_RENDERER)))
                   << ",\"gles\":" << std::quoted(reinterpret_cast<const char*>(glGetString(GL_VERSION)))
                   << ",\"ext_shader_framebuffer_fetch\":" << (HasExtension("GL_EXT_shader_framebuffer_fetch") ? "true" : "false")
@@ -155,6 +161,13 @@ void main() { value = 0x4d4d3344u; }
                      "\"generated_pica_tev_draw_readback\":true,"
                      "\"generated_pica_logic_discard_depth\":true,"
                      "\"rgba8_logic_operations\":16,\"logic_coherent_fetch_and_masks\":true,"
+                     "\"owned_targets_depth_stencil_resize_blit\":true,"
+                     "\"upstream_pica_draw_contract\":true,"
+                     "\"pica_native_texture_upload_sampling\":true,"
+                     "\"generated_tev_textured_draw_contract\":true,"
+                     "\"runtime_backend_targets_fills_completions\":true,"
+                     "\"display_transfer_rotation_scaling_overlay\":true,"
+                     "\"egl_context_recreation_abandon\":true,"
                      "\"scope\":\"synthetic_offscreen_not_full_pica_or_gameplay\"}\n";
         glDeleteBuffers(1, &buffer);
         glDeleteVertexArrays(1, &vao);

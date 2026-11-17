@@ -48,7 +48,8 @@ cmake -S "$root/ports/android/compat_probe" -B "$TRIAEVUM_BUILD_DIR/compat" -G N
     "-DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK_HOME/build/cmake/android.toolchain.cmake" \
     -DANDROID_ABI=arm64-v8a -DANDROID_PLATFORM=android-29 \
     "-DTRIAEVUM_SOURCE_DIR=$source_dir" \
-    -DANDROID_STL=c++_shared -DCMAKE_BUILD_TYPE=Release
+    -DANDROID_STL=c++_shared -DCMAKE_BUILD_TYPE=Release \
+    "-DMM3D_BUILD_WINDOW_APP=${MM3D_BUILD_WINDOW_APP:-OFF}"
 cmake --build "$TRIAEVUM_BUILD_DIR/compat" --parallel "$CMAKE_BUILD_PARALLEL_LEVEL"
 bash "$source_dir/scripts/build-android-native.sh" \
     "-DTRIAEVUM_ANDROID_TITLE=${locked[2]}" \

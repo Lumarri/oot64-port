@@ -1,0 +1,22 @@
+MM3D Android window prototype (synthetic graphics; no Nintendo game data)
+
+Original integration and GLES adaptation: GPL-3.0-or-later.
+Source: https://github.com/Lumarri/oot64-port
+
+TriAevum/Moonfall Curse: GPL-3.0-or-later, with existing component notices.
+Pinned source: https://github.com/coccofresco/TriAevum/tree/672d13f15cb336bc7651c861d23cf45924a9f936
+Compiled subset: native PICA fragment generator, lighting/procedural/TEV helpers,
+texture decoder and GL shader dialect. Consult the accompanying license scope
+and upstream notices. No iMMERSE/MXAO or DLSS source is compiled in this APK.
+
+Android NDK native_app_glue:
+Copyright (C) 2010 The Android Open Source Project.
+Licensed under the Apache License, Version 2.0 (see Apache-2.0.txt).
+
+LLVM libc++ runtime from Android NDK r29:
+Apache-2.0 WITH LLVM-exception; see the accompanying license and exception.
+Original component source headers retain their copyright notices.
+
+This local debug APK contains no ROM, extracted assets, translated game module,
+keys, firmware or proprietary visual/audio resources. The colored texture and
+geometry are original synthetic test data. It does not boot Majora's Mask 3D.
