@@ -8,7 +8,7 @@ static void TestPicaDialect() {
 layout(set=0,binding=0,std140) uniform PicaVertexUniforms { vec4 f[96]; } uniforms;
 void main() {
     const vec2 vertices[3] = vec2[3](vec2(-1,-1), vec2(3,-1), vec2(-1,3));
-    vec4 pica_position = vec4(vertices[gl_VertexID], -uniforms.f[0].x, 1.0);
+    vec4 pica_position = vec4(vertices[gl_VertexID] * 2.0, -uniforms.f[0].x * 2.0, 2.0);
     gl_Position = vec4(pica_position.x, pica_position.y, -pica_position.z, pica_position.w);
 }
 )glsl";
@@ -60,19 +60,39 @@ void main() {
                      i == 0 ? static_cast<const void*>(texel.data()) : &lut);
     }
     glUseProgram(program);
+    glEnable(GL_DEPTH_TEST);
+    glDepthMask(GL_TRUE);
     glDepthFunc(GL_LESS);
     glClearDepthf(1.0f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glDrawArrays(GL_TRIANGLES, 0, 3);
-    uniforms[0] = 0.75f;
-    glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(uniforms), uniforms.data());
-    glDrawArrays(GL_TRIANGLES, 0, 3);
-    std::array<unsigned char, 4> pixel{};
-    glReadPixels(32, 32, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, pixel.data());
-    Require(glGetError() == GL_NO_ERROR, "PICA dialect GL error");
-    Require(pixel[0] >= 63 && pixel[0] <= 65 && pixel[1] >= 127 && pixel[1] <= 129
-            && pixel[2] >= 63 && pixel[2] <= 65 && pixel[3] == 255,
-            "PICA dialect texture/UBO/clip-depth/occlusion mismatch");
+    glClearColor(0, 0, 0, 1);
+    const auto draw = [&](float depth) {
+        uniforms[0] = depth;
+        glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(uniforms), uniforms.data());
+        glDrawArrays(GL_TRIANGLES, 0, 3);
+    };
+    const auto checkPixel = [](int red, int green, int blue) {
+        std::array<unsigned char, 4> pixel{};
+        glReadPixels(32, 32, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, pixel.data());
+        Require(glGetError() == GL_NO_ERROR, "PICA dialect GL error");
+        Require(int(pixel[0]) >= red - 1 && int(pixel[0]) <= red + 1
+                && int(pixel[1]) >= green - 1 && int(pixel[1]) <= green + 1
+                && int(pixel[2]) >= blue - 1 && int(pixel[2]) <= blue + 1 && pixel[3] == 255,
+                "PICA dialect texture/UBO/clip-depth/occlusion mismatch");
+    };
+    // Independent depths catch a broken UBO update; w=2 catches incorrect
+    // homogeneous depth conversion. Both draw orders must preserve the front.
+    for (float depth : {0.25f, 0.75f}) {
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        draw(depth);
+        checkPixel(64, 128, depth == 0.25f ? 64 : 191);
+        draw(1.0f - depth);
+        checkPixel(64, 128, 64);
+    }
+    for (float depth : {-0.25f, 1.25f}) {
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        draw(depth);
+        checkPixel(0, 0, 0);
+    }
     glDeleteTextures(2, textures);
     glDeleteBuffers(1, &ubo);
     glDeleteProgram(program);

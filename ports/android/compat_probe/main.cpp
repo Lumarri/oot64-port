@@ -56,6 +56,8 @@ static GLuint Program(std::initializer_list<GLuint> shaders) {
 }
 
 #include "pica_dialect_probe.h"
+#include "generated_pica_probe.h"
+#include "pica_logic_probe.h"
 
 int main() {
     EGLDisplay display = EGL_NO_DISPLAY;
@@ -140,6 +142,8 @@ void main() { value = 0x4d4d3344u; }
         Require(glGetError() == GL_NO_ERROR && value == 0x4d4d3344u, "Compute/SSBO readback mismatch");
 
         TestPicaDialect();
+        TestGeneratedPicaFragments();
+        TestPicaLogic();
         std::cout << "{\"renderer\":" << std::quoted(reinterpret_cast<const char*>(glGetString(GL_RENDERER)))
                   << ",\"gles\":" << std::quoted(reinterpret_cast<const char*>(glGetString(GL_VERSION)))
                   << ",\"ext_shader_framebuffer_fetch\":" << (HasExtension("GL_EXT_shader_framebuffer_fetch") ? "true" : "false")
@@ -147,6 +151,10 @@ void main() { value = 0x4d4d3344u; }
                   << ",\"ext_texture_border_clamp\":" << (HasExtension("GL_EXT_texture_border_clamp") ? "true" : "false")
                   << ",\"rgba8_depth24_draw_readback\":true,\"compute_ssbo_readback\":true,"
                      "\"pica_dialect_texture_ubo_depth\":true,\"dialect_rejections\":true,"
+                     "\"generated_pica_fragment_variants_linked\":6,"
+                     "\"generated_pica_tev_draw_readback\":true,"
+                     "\"generated_pica_logic_discard_depth\":true,"
+                     "\"rgba8_logic_operations\":16,\"logic_coherent_fetch_and_masks\":true,"
                      "\"scope\":\"synthetic_offscreen_not_full_pica_or_gameplay\"}\n";
         glDeleteBuffers(1, &buffer);
         glDeleteVertexArrays(1, &vao);
